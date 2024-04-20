@@ -1,3 +1,7 @@
+# Quick Demo Video
+
+https://github.com/Bashoriii/search-country/assets/43586788/3a6e9e0b-8454-4017-8c53-4935e0df3f16
+
 # Country Search Engine
 This React application utilizes the [Rest Countries API](https://restcountries.com/) to provide detailed information about various countries. Users can easily search for a country using the search bar, which displays the top 5 matching suggestions. Upon selection, users are redirected to a new page containing detailed information about the chosen country, including its currency, capital, region, and more.
 
@@ -48,9 +52,5 @@ or
 yarn build
 ```
 This will create an optimized production build of the app in the build directory.
-
-## Quick Demo Video
-
-https://github.com/Bashoriii/search-country/assets/43586788/3a6e9e0b-8454-4017-8c53-4935e0df3f16
 
 
