@@ -10,6 +10,7 @@ import Loading from '@/components/loading/Loading';
 
 interface Country {
   latlng: string;
+  latnum: string;
   altSpellings: string[];
   name: { common: string };
   flag: string;
@@ -50,7 +51,7 @@ const Result = () => {
       `https://restcountries.com/v3.1/currency/${currencyCode}`
     );
     const response = await dataCurr.json();
-    setCurrLength(response);
+    setCurrLength(response.length);
     setListCountry(response);
     console.log(response);
   };
@@ -90,7 +91,14 @@ const Result = () => {
               </div>
 
               <div className="flex gap-6 mt-4">
-                <LatLong latlng={'LatLong'} latnum={item.latlng} />
+                <LatLong
+                  latlng={'LatLong'}
+                  latnum={
+                    Array.isArray(item.latlng)
+                      ? item.latlng.map((value) => Number(value))
+                      : []
+                  }
+                />
                 <Capital
                   capital={item.capital[0]}
                   region={item.region}
@@ -109,7 +117,7 @@ const Result = () => {
                 <CallingAndCurrency
                   title={'Currency'}
                   span={currency}
-                  val={currLength.length}
+                  val={currLength}
                   para={'with this currency'}
                   countryName={
                     Array.isArray(listCountry)
