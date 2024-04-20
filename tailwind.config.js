@@ -25,6 +25,7 @@ const config = {
         abu: '#C8C8C8',
         ungu: '#8362F2',
         merah: '#FF0000',
+        ijo: '#8DD4CC',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {

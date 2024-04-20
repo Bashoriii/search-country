@@ -1,22 +1,26 @@
-import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useState, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import Icon from '@mdi/react';
 import { mdiMagnify } from '@mdi/js';
 
+interface Countries {
+  name: { common: string };
+}
+
 const Home = () => {
   const [inputFocused, setInputFocused] = useState(false);
-  const [countries, setCountry] = useState([]);
+  const [countries, setCountry] = useState<Countries[]>([]);
   const [noCountry, setNoCountry] = useState(false);
 
-  const handleSearch = (e) => {
-    let name = e.target.value;
-    if (name.trim() !== '') {
+  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value.trim();
+    if (name !== '') {
       const fetchSearch = async () => {
         const fetchData = await fetch(
           `https://restcountries.com/v3.1/name/${name}`
         );
         const response = await fetchData.json();
-        console.log(response);
 
         if (response.status !== 404) {
           setCountry(response);
@@ -45,7 +49,7 @@ const Home = () => {
 
   return (
     <>
-      <div className="flex flex-col justify-center items-center h-screen">
+      <div className="flex flex-col items-center h-screen mt-48">
         <h1 className="font-inter font-bold text-7xl mb-12">Country</h1>
         <div className="relative">
           <Input
@@ -65,13 +69,21 @@ const Home = () => {
         </div>
         {countries.length > 0 &&
           (!noCountry ? (
-            <ul className="border rounded-[5px] w-[700px] px-6 mt-2">
+            <ul className="shadow-md rounded-[5px] w-[700px] px-6 mt-2 flex flex-col">
               {countries.slice(0, 5).map((country, index) => (
-                <li key={index}>{country.name.common}</li>
+                <Link
+                  key={index}
+                  to={`/result/${encodeURIComponent(
+                    country.name.common.toLowerCase()
+                  )}`}
+                  className="hover:bg-gray-100"
+                >
+                  {country.name.common}
+                </Link>
               ))}
             </ul>
           ) : (
-            <p className="border rounded-[5px] w-[700px] h-[71px] px-6 mt-2 flex items-center text-merah">
+            <p className="shadow-md rounded-[5px] w-[700px] h-[71px] px-6 mt-2 flex items-center text-merah">
               Data not Found
             </p>
           ))}
