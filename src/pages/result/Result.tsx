@@ -1,15 +1,21 @@
-import { Link, useParams } from 'react-router-dom';
+import { useQuery, QueryFunction } from '@tanstack/react-query';
+import { useParams, Link } from 'react-router-dom';
+import Loading from '@/components/loading/Loading';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
 import Icon from '@mdi/react';
 import { mdiArrowLeft } from '@mdi/js';
-import LatLong from '@/components/latlong-card/Latlong';
-import Capital from '@/components/capital-card/Capital';
-import CallingAndCurrency from '@/components/calling-code/Calling';
-import Loading from '@/components/loading/Loading';
 
-interface Country {
-  latlng: string;
+import LatlongCard from '@/components/latlong-card/Latlong-Card';
+import CapitalCard from '@/components/capital-card/Capital-Card';
+import CallingAndCurrency from '@/components/calling-code/Calling-Card';
+
+interface IDD {
+  root: string;
+  suffixes: string[];
+}
+
+interface CountryV2 {
+  latlng: number[];
   latnum: string;
   altSpellings: string[];
   name: { common: string };
@@ -17,48 +23,37 @@ interface Country {
   capital: string;
   region: string;
   subregion: string;
-  countryName: string | string[];
+  idd: IDD;
+  currencies: string;
 }
 
+type QueryKeyParam = [string, { countryName: string | undefined }];
+
+const fetchRestCountries: QueryFunction<CountryV2[], QueryKeyParam> = async ({
+  queryKey,
+}) => {
+  const [, { countryName }] = queryKey;
+  const response = await fetch(
+    `https://restcountries.com/v3.1/name/${countryName}?fullText=true`
+  );
+  if (!response.ok) {
+    throw new Error('Cant fetch data country');
+  }
+  const data: CountryV2[] = await response.json();
+  return data;
+};
+
 const Result = () => {
-  const [data, setData] = useState<Country[]>([]);
-  const [currency, setCurrency] = useState('');
-  const [listCountry, setListCountry] = useState('');
-  const [currLength, setCurrLength] = useState<number>(0);
-  const [calling, setCalling] = useState('0');
-  const [isLoading, setIsLoading] = useState(true);
   const { countryName } = useParams();
-  const fetchData = async () => {
-    setIsLoading(true);
-    const dataFetch = await fetch(
-      `https://restcountries.com/v3.1/name/${countryName}?fullText=true`
-    );
+  const queryKey: QueryKeyParam = ['country', { countryName }];
+  const { data, isLoading } = useQuery({
+    queryKey: queryKey,
+    queryFn: fetchRestCountries,
+  });
 
-    const response = await dataFetch.json();
-    const currencies = response[0]?.currencies;
-    const currencyCode = Object.keys(currencies)[0];
-    const callingCode = response[0]?.idd?.suffixes[0];
-
-    setData(response);
-    setCurrency(currencyCode);
-    setCalling(callingCode);
-    fetchCurrency(currencyCode);
-    setIsLoading(false);
-  };
-
-  const fetchCurrency = async (currencyCode: string) => {
-    const dataCurr = await fetch(
-      `https://restcountries.com/v3.1/currency/${currencyCode}`
-    );
-    const response = await dataCurr.json();
-    setCurrLength(response.length);
-    setListCountry(response);
-    console.log(response);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <>
@@ -70,65 +65,63 @@ const Result = () => {
           </Button>
         </Link>
 
-        {isLoading ? (
-          <Loading />
-        ) : (
-          data.map((item, parentIndex) => (
-            <div key={parentIndex} className="main-content mt-16">
+        {data?.map((item, index) => {
+          // LatLong
+          const latLongGetDecimal = item.latlng.map((lat) => lat.toFixed(1));
+          const latLongWithSeparator = latLongGetDecimal.join(', ');
+
+          // Calling Code
+          const rootNum = item.idd.root;
+          const suffNum = item.idd.suffixes[0];
+          const callCode = rootNum + suffNum;
+
+          // Currency
+          const currency = Object.keys(item.currencies)[0];
+
+          return (
+            <div className="main-content mt-16" key={index}>
               <h1 className="font-bold text-5xl mb-4">
                 {item.name.common} <span>{item.flag}</span>
               </h1>
 
-              <div className="flex">
-                {item.altSpellings.map((alt: string, index: number) => (
-                  <p
-                    key={`alt-${parentIndex}-${index}`}
+              {/* Country Tags / Alt Spellings */}
+              <ul className="flex" key={index}>
+                {item.altSpellings.map((tags, index) => (
+                  <li
+                    key={index}
                     className="mr-1 bg-ijo rounded-[50px] px-4 py-1 text-xs text-background font-bold"
                   >
-                    {alt}
-                  </p>
+                    {tags}
+                  </li>
                 ))}
-              </div>
+              </ul>
 
+              {/* LatLong, Capital, Region and Subregion */}
               <div className="flex gap-6 mt-4">
-                <LatLong
-                  latlng={'LatLong'}
-                  latnum={
-                    Array.isArray(item.latlng)
-                      ? item.latlng.map((value) => Number(value))
-                      : []
-                  }
-                />
-                <Capital
-                  capital={item.capital[0]}
+                <LatlongCard latlngVal={latLongWithSeparator} />
+                <CapitalCard
+                  capital={item.capital}
                   region={item.region}
-                  subregion={item.subregion}
+                  subreg={item.subregion}
                 />
               </div>
 
-              <div className="calling-and-currency flex gap-6">
+              {/* <CallingCard /> */}
+              <div className="flex gap-6">
                 <CallingAndCurrency
                   title={'Calling Code'}
-                  span={calling}
-                  val={1}
-                  para={'with this calling code'}
-                  countryName={'1'}
+                  span={callCode}
+                  countryName={item.name.common}
                 />
                 <CallingAndCurrency
                   title={'Currency'}
                   span={currency}
-                  val={currLength}
-                  para={'with this currency'}
-                  countryName={
-                    Array.isArray(listCountry)
-                      ? listCountry.map((country) => country.name.common)
-                      : listCountry
-                  }
+                  countryName={item.name.common}
                 />
               </div>
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
     </>
   );
