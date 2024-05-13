@@ -3,10 +3,16 @@ import { Tooltip } from 'react-tooltip';
 type CallingAndCurrencyProps = {
   title: string;
   span: string;
-  countryName: string;
+  tooltipMsg: string;
+  countryCount: number | undefined;
 };
 
-const CallingCode = ({ title, span, countryName }: CallingAndCurrencyProps) => {
+const CallingCode = ({
+  title,
+  span,
+  tooltipMsg,
+  countryCount,
+}: CallingAndCurrencyProps) => {
   return (
     <>
       <div className="calling w-[540px] mt-8">
@@ -16,9 +22,9 @@ const CallingCode = ({ title, span, countryName }: CallingAndCurrencyProps) => {
           <span
             className="text-ungu underline cursor-pointer"
             data-tooltip-id="country-name"
-            data-tooltip-content={countryName}
+            data-tooltip-content={tooltipMsg}
           >
-            1 Country
+            {countryCount} Country
           </span>{' '}
           with this {title.toLocaleLowerCase()}
         </h3>
