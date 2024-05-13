@@ -9,12 +9,7 @@ import LatlongCard from '@/components/latlong-card/Latlong-Card';
 import CapitalCard from '@/components/capital-card/Capital-Card';
 import CallingAndCurrency from '@/components/calling-code/Calling-Card';
 
-interface IDD {
-  root: string;
-  suffixes: string[];
-}
-
-interface CountryV2 {
+interface RestCountry {
   latlng: number[];
   latnum: string;
   altSpellings: string[];
@@ -23,15 +18,23 @@ interface CountryV2 {
   capital: string;
   region: string;
   subregion: string;
-  idd: IDD;
+  idd: {
+    root: string;
+    suffixes: string[];
+  };
   currencies: string;
 }
+type QueryKeyCountry = [string, { countryName: string | undefined }];
+type QueryKeyCurrency = [string, { currency: string }];
 
-type QueryKeyParam = [string, { countryName: string | undefined }];
+interface RestCurrency {
+  name: { common: string };
+}
 
-const fetchRestCountries: QueryFunction<CountryV2[], QueryKeyParam> = async ({
-  queryKey,
-}) => {
+const fetchRestCountries: QueryFunction<
+  RestCountry[],
+  QueryKeyCountry
+> = async ({ queryKey }) => {
   const [, { countryName }] = queryKey;
   const response = await fetch(
     `https://restcountries.com/v3.1/name/${countryName}?fullText=true`
@@ -39,19 +42,43 @@ const fetchRestCountries: QueryFunction<CountryV2[], QueryKeyParam> = async ({
   if (!response.ok) {
     throw new Error('Cant fetch data country');
   }
-  const data: CountryV2[] = await response.json();
+  const data: RestCountry[] = await response.json();
+  return data;
+};
+
+const fetchCurrencies = async ({
+  queryKey,
+}: {
+  queryKey: QueryKeyCurrency;
+}) => {
+  const [, { currency }] = queryKey;
+  const response = await fetch(
+    `https://restcountries.com/v3.1/currency/${currency}`
+  );
+  const data = await response.json();
   return data;
 };
 
 const Result = () => {
   const { countryName } = useParams();
-  const queryKey: QueryKeyParam = ['country', { countryName }];
-  const { data, isLoading } = useQuery({
-    queryKey: queryKey,
+  const countryNameKey: QueryKeyCountry = ['country', { countryName }];
+  const { data: countryData, isLoading: isCountryLoading } = useQuery({
+    queryKey: countryNameKey,
     queryFn: fetchRestCountries,
   });
 
-  if (isLoading) {
+  let currencyUrl: string = '';
+  if (countryData) {
+    currencyUrl = Object.keys(countryData[0].currencies)[0] || '';
+  }
+
+  const { data: currencyData, isLoading: isCurrencyLoading } = useQuery({
+    queryKey: ['currencyKey', { currency: currencyUrl }],
+    queryFn: fetchCurrencies,
+    enabled: !!currencyUrl,
+  });
+
+  if (isCountryLoading || isCurrencyLoading) {
     return <Loading />;
   }
 
@@ -65,7 +92,7 @@ const Result = () => {
           </Button>
         </Link>
 
-        {data?.map((item, index) => {
+        {countryData?.map((item, index) => {
           // LatLong
           const latLongGetDecimal = item.latlng.map((lat) => lat.toFixed(1));
           const latLongWithSeparator = latLongGetDecimal.join(', ');
@@ -77,6 +104,11 @@ const Result = () => {
 
           // Currency
           const currency = Object.keys(item.currencies)[0];
+
+          // List country with same currency
+          const listCountry = currencyData?.map(
+            (list: RestCurrency) => list.name.common
+          );
 
           return (
             <div className="main-content mt-16" key={index}>
@@ -111,12 +143,14 @@ const Result = () => {
                 <CallingAndCurrency
                   title={'Calling Code'}
                   span={callCode}
-                  countryName={item.name.common}
+                  tooltipMsg={item.name.common}
+                  countryCount={1}
                 />
                 <CallingAndCurrency
                   title={'Currency'}
                   span={currency}
-                  countryName={item.name.common}
+                  tooltipMsg={listCountry}
+                  countryCount={currencyData?.length}
                 />
               </div>
             </div>
