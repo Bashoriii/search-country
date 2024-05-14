@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import Icon from '@mdi/react';
 import { mdiMagnify } from '@mdi/js';
@@ -12,33 +12,42 @@ const Home = () => {
   const [inputFocused, setInputFocused] = useState(false);
   const [countries, setCountry] = useState<Countries[]>([]);
   const [noCountry, setNoCountry] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value.trim();
-    if (name !== '') {
-      const fetchSearch = async () => {
-        const fetchData = await fetch(
-          `https://restcountries.com/v3.1/name/${name}`
-        );
-        const response = await fetchData.json();
 
-        if (response.status !== 404) {
-          setCountry(response);
-          setNoCountry(false);
-        } else {
-          setNoCountry(true);
-        }
-      };
-
-      try {
-        fetchSearch();
-      } catch (error) {
-        console.log(error);
-      }
-    } else {
-      setCountry([]);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
+
+    timeoutRef.current = window.setTimeout(() => {
+      if (name !== '') {
+        const fetchSearch = async () => {
+          const response = await fetch(
+            `https://restcountries.com/v3.1/name/${name}`
+          );
+          const data = await response.json();
+
+          if (response.status !== 404) {
+            setCountry(data);
+            setNoCountry(false);
+          } else {
+            setNoCountry(true);
+          }
+        };
+
+        try {
+          fetchSearch();
+        } catch (error) {
+          console.log(error);
+        }
+      } else {
+        setCountry([]);
+      }
+    }, 500);
   };
+
   const handleInputFocus = () => {
     setInputFocused(true);
   };
